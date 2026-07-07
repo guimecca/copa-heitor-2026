@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Copa do Heitor - 2 Anos!</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      text-align: center; 
+      background-color: #0B1C2E; /* Azul Marinho */
+      color: #333;
+      padding: 15px; 
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container { 
+      width: 100%; 
+      max-width: 400px; 
+      background: #ffffff; 
+      padding: 25px 20px; 
+      border-radius: 12px; 
+      border: 3px solid #FFD700; /* Dourado */
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3); 
+    }
+    h1 { color: #0B1C2E; font-size: 22px; margin-bottom: 5px; text-transform: uppercase; }
+    h2 { color: #28a745; font-size: 18px; margin-bottom: 20px; } /* Verde */
+    
+    canvas { 
+      width: 100%; 
+      max-height: 350px;
+      object-fit: contain;
+      border-radius: 8px; 
+      margin-top: 10px; 
+      background-color: #eee; 
+    }
+    
+    button { 
+      display: block;
+      width: 100%;
+      background: #28a745; 
+      color: white; 
+      border: none; 
+      padding: 15px; 
+      margin-top: 15px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 18px; 
+      font-weight: bold;
+    }
+    button:disabled { 
+      background: #cccccc; 
+      color: #666;
+      cursor: not-allowed; 
+    }
+    #btnRetake { background: #dc3545; } /* Vermelho */
+    #btnSave { background: #FFD700; color: #0B1C2E; }
+    
+    .hidden { display: none !important; }
+    
+    #terms { 
+      margin: 20px 0; 
+      text-align: left; 
+      font-size: 15px; 
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #FFD700;
+    }
+    #terms label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    #terms input { margin-top: 4px; transform: scale(1.3); }
+    #statusMsg { margin-top: 15px; font-weight: bold; color: #0B1C2E; }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="step1">
+    <h1>Copa do Heitor</h1>
+    <h2>2 Anos</h2>
+    <p>Vamos registrar os melhores lances dessa festa!</p>
+    
+    <div id="terms">
+      <label>
+        <input type="checkbox" id="acceptCheckbox">
+        Aceito ceder meus direitos de imagem e permito o armazenamento desta foto no álbum da festa.
+      </label>
+    </div>
+    
+    <input type="file" accept="image/*" capture="environment" id="cameraInput" class="hidden">
+    
+    <button id="btnStart" disabled>📸 Abrir Câmera</button>
+  </div>
+
+  <div class="container hidden" id="step2">
+    <h1>Copa do Heitor</h1>
+    <h2>Ficou boa?</h2>
+    <canvas id="canvas"></canvas>
+    <button id="btnSave">Salvar no Álbum ⚽</button>
+    <button id="btnRetake">Tentar Novamente</button>
+    <p id="statusMsg"></p>
+  </div>
+
+  <script>
+    // URL DA SUA API DO GOOGLE APPS SCRIPT (Cole aqui a sua URL que termina com /exec)
+    const APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzopnQRakpGmlovb9GV58ZJX5CoOxzluWlMSnYtGhwpoc4RMneKUXc_ydcMe70kIgw/exec";
+
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const acceptCheckbox = document.getElementById('acceptCheckbox');
+    const btnStart = document.getElementById('btnStart');
+    const cameraInput = document.getElementById('cameraInput');
+    const btnRetake = document.getElementById('btnRetake');
+    const btnSave = document.getElementById('btnSave');
+    const statusMsg = document.getElementById('statusMsg');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    acceptCheckbox.addEventListener('change', (e) => {
+      btnStart.disabled = !e.target.checked;
+    });
+
+    btnStart.addEventListener('click', () => {
+      cameraInput.click();
+    });
+
+    // Quando o usuário tira a foto e confirma no app nativo do celular
+    cameraInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        statusMsg.innerText = "Carregando imagem...";
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            // Ajusta o tamanho do canvas mantendo a proporção da foto original
+            const maxDimension = 1200; // Limita o tamanho máximo para enviar rápido
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > maxDimension) {
+              height *= maxDimension / width;
+              width = maxDimension;
+            } else if (height > maxDimension) {
+              width *= maxDimension / height;
+              height = maxDimension;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            step1.classList.add('hidden');
+            step2.classList.remove('hidden');
+            statusMsg.innerText = "";
+          }
+          img.src = event.target.result;
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+    btnRetake.addEventListener('click', () => {
+      cameraInput.value = ''; 
+      cameraInput.click(); 
+      statusMsg.innerText = "";
+      btnSave.style.display = 'block';
+      btnSave.disabled = false;
+      btnSave.innerText = "Salvar no Álbum ⚽";
+    });
+
+    // Envio nativo via FETCH API para o Back-end do Google
+    btnSave.addEventListener('click', () => {
+      btnSave.disabled = true;
+      btnSave.innerText = "Enviando pro juiz... ⏳";
+      statusMsg.innerText = "Subindo a foto para o Drive...";
+      
+      const base64Data = canvas.toDataURL('image/jpeg', 0.75); // Compactação ideal para mobile
+
+      // Envia os dados como texto puro para evitar problemas de CORS pré-flight
+      fetch(APP_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Permite enviar dados para domínios diferentes sem travar
+        body: JSON.stringify({ image: base64Data })
+      })
+      .then(() => {
+        // Como usamos 'no-cors', o navegador não consegue ler a resposta de sucesso por segurança,
+        // mas se não deu erro de rede, o envio foi efetuado com sucesso!
+        statusMsg.style.color = "#28a745";
+        statusMsg.innerText = "Golaço! Foto enviada para o álbum.";
+        btnSave.style.display = 'none';
+        btnRetake.innerText = "Tirar outra foto";
+      })
+      .catch((err) => {
+        statusMsg.style.color = "#dc3545";
+        statusMsg.innerText = "Erro ao enviar: " + err.message;
+        btnSave.disabled = false;
+        btnSave.innerText = "Tentar Salvar Novamente";
+      });
+    });
+  </script>
+</body>
+</html>
